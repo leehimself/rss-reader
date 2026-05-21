@@ -7,7 +7,7 @@ const videoPatterns = [
   {
     match: /bilibili\.com\/video\/(BV[a-zA-Z0-9]+)/,
     extract: (m: RegExpMatchArray) => m[1],
-    embed: (id: string) => `<iframe src="//player.bilibili.com/player.html?bvid=${id}&page=1" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true" width="560" height="315"></iframe>`,
+    embed: (id: string) => `<iframe src="https://player.bilibili.com/player.html?bvid=${id}&page=1" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true" width="560" height="315"></iframe>`,
   },
   {
     match: /vimeo\.com\/(\d+)/,
