@@ -28,7 +28,7 @@ export default function CategoryList({ feeds, selectedFeedId, onSelectFeed }: Ca
     <div className="py-2">
       <div
         className={clsx(
-          'flex items-center px-4 py-2 cursor-pointer hover:bg-[var(--color-border)]',
+          'flex items-center px-4 py-2 cursor-pointer hover:bg-[var(--color-bg-tertiary)] transition-colors',
           selectedFeedId === null && 'bg-[var(--color-accent)] text-white'
         )}
         onClick={() => onSelectFeed(null)}
@@ -64,7 +64,7 @@ function CategoryGroup({ category, feeds, selectedFeedId, onSelectFeed, onFetchF
   return (
     <div>
       <div
-        className="flex items-center px-4 py-2 cursor-pointer hover:bg-[var(--color-border)] text-sm font-medium"
+        className="flex items-center px-4 py-2 cursor-pointer hover:bg-[var(--color-bg-tertiary)] text-sm font-medium transition-colors"
         onClick={() => setExpanded(!expanded)}
       >
         <svg className={clsx('w-3 h-3 mr-1 transition-transform', expanded && 'rotate-90')} fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" /></svg>
@@ -92,7 +92,7 @@ function FeedItem({ feed, isSelected, onSelect, onFetch }: {
   return (
     <div
       className={clsx(
-        'group flex items-center pl-10 pr-2 py-1.5 cursor-pointer hover:bg-[var(--color-border)]',
+        'group flex items-center pl-10 pr-2 py-1.5 cursor-pointer hover:bg-[var(--color-bg-tertiary)] transition-colors',
         isSelected && 'bg-[var(--color-accent)] text-white'
       )}
       onClick={onSelect}
@@ -104,7 +104,7 @@ function FeedItem({ feed, isSelected, onSelect, onFetch }: {
       )}
       <span className="flex-1 text-sm truncate">{feed.name}</span>
       {feed.unread_count && feed.unread_count > 0 && (
-        <span className={clsx('text-xs px-1.5 py-0.5 rounded-full', isSelected ? 'bg-white/20' : 'bg-[var(--color-accent)] text-white')}>
+        <span className={clsx('text-xs px-1.5 py-0.5 rounded-md', isSelected ? 'bg-white/20' : 'bg-[var(--color-badge)] text-white')}>
           {feed.unread_count}
         </span>
       )}

@@ -31,13 +31,13 @@ export default function FilterBar() {
   return (
     <div className="flex items-center gap-2 p-2 border-b border-[var(--color-border)] bg-[var(--color-bg-secondary)]">
       <button
-        className={clsx('px-3 py-1.5 text-sm rounded', filterUnread ? 'bg-[var(--color-accent)] text-white' : 'hover:bg-[var(--color-border)]')}
+        className={clsx('px-3 py-1.5 text-sm rounded-md transition-colors', filterUnread ? 'bg-[var(--color-accent)] text-white' : 'hover:bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)]')}
         onClick={() => setFilterUnread(!filterUnread)}
       >
         未读
       </button>
       <button
-        className={clsx('px-3 py-1.5 text-sm rounded', filterStarred ? 'bg-[var(--color-accent)] text-white' : 'hover:bg-[var(--color-border)]')}
+        className={clsx('px-3 py-1.5 text-sm rounded-md transition-colors', filterStarred ? 'bg-[var(--color-accent)] text-white' : 'hover:bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)]')}
         onClick={() => setFilterStarred(!filterStarred)}
       >
         收藏
@@ -45,7 +45,7 @@ export default function FilterBar() {
       <select
         value={sortBy}
         onChange={e => setSortBy(e.target.value as 'newest' | 'oldest')}
-        className="px-3 py-1.5 text-sm rounded border border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text)]"
+        className="px-3 py-1.5 text-sm rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
       >
         <option value="newest">最新在前</option>
         <option value="oldest">最旧在前</option>
@@ -68,12 +68,12 @@ export default function FilterBar() {
       <button 
         onClick={handleRefreshAll} 
         disabled={refreshing}
-        className="px-3 py-1.5 text-sm rounded hover:bg-[var(--color-border)] disabled:opacity-50"
+        className="px-3 py-1.5 text-sm rounded-md hover:bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)] transition-colors disabled:opacity-50"
       >
         {refreshing ? '刷新中...' : '全部刷新'}
       </button>
 
-      <button onClick={handleMarkAllRead} className="px-3 py-1.5 text-sm rounded hover:bg-[var(--color-border)]">
+      <button onClick={handleMarkAllRead} className="px-3 py-1.5 text-sm rounded-md hover:bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)] transition-colors">
         全部标记已读
       </button>
     </div>
