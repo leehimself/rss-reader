@@ -26,13 +26,22 @@ export default function FeedActionMenu({ feed, onRefresh }: FeedActionMenuProps)
   }, [open]);
 
   const handleRefresh = async () => {
-    await fetchFeed(feed.id);
-    onRefresh();
+    try {
+      await fetchFeed(feed.id);
+      onRefresh();
+    } catch (err) {
+      console.error(`刷新「${feed.name}」失败:`, err);
+    }
     setOpen(false);
   };
 
   const handleDelete = async () => {
-    await deleteFeed(feed.id);
+    try {
+      await deleteFeed(feed.id);
+    } catch (err) {
+      console.error(`删除「${feed.name}」失败:`, err);
+      return;
+    }
     setConfirmDelete(false);
     setOpen(false);
   };

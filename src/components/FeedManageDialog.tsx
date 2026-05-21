@@ -19,7 +19,9 @@ export default function FeedManageDialog({ onClose, editFeed }: FeedManageDialog
   const [customInterval, setCustomInterval] = useState<number | null>(editFeed?.custom_interval ?? null);
 
   useEffect(() => {
-    categoriesApi.getAll().then(setCategories).catch(() => {});
+    categoriesApi.getAll().then(setCategories).catch((err) => {
+      console.error('Failed to load categories:', err);
+    });
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
