@@ -1,9 +1,11 @@
 import type { Article } from '@shared/types';
+import { useNavigate } from 'react-router-dom';
 import { useArticleStore } from '../store/articleStore';
 import { useUIStore } from '../store/uiStore';
 import clsx from 'clsx';
 
 export default function ArticleList() {
+  const navigate = useNavigate();
   const { articles, selectedArticle, selectArticle, markRead } = useArticleStore();
   const { setSelectedArticleIndex } = useUIStore();
 
@@ -29,6 +31,7 @@ export default function ArticleList() {
             selectArticle(article);
             setSelectedArticleIndex(index);
             if (!article.is_read) markRead(article.id);
+            navigate(`/article/${article.id}`);
           }}
         />
       ))}
