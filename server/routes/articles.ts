@@ -1,8 +1,32 @@
 import { Router } from 'express';
 import { dbManager } from '../db.js';
-import { proxyImageUrls } from '../rss/image-proxy-integration.js';
+import { applyContentAdapters } from '../rss/content-adapters.js';
+import { unwrapImageProxyUrls } from '../rss/image-proxy-integration.js';
+import { convert } from 'html-to-text';
 
 const router = Router();
+
+function preCacheImages(html: string) {
+  const urls = new Set<string>();
+  const regex = /\/api\/image\?url=([^&"]+)/g;
+  let m;
+  while ((m = regex.exec(html)) !== null) {
+    const decoded = decodeURIComponent(m[1]);
+    if (decoded.startsWith('http')) urls.add(decoded);
+  }
+  if (urls.size === 0) return;
+  import('../workers/worker-dispatcher.js').then(async ({ workerDispatcher }) => {
+    const limit = 2;
+    const queue = [...urls];
+    const worker = async () => {
+      while (queue.length > 0) {
+        const url = queue.shift()!;
+        try { await workerDispatcher.dispatchImageDownload(url); } catch {}
+      }
+    };
+    await Promise.all(Array.from({ length: limit }, () => worker()));
+  });
+}
 
 router.get('/', (req, res) => {
   const db = dbManager.getConnection();
@@ -34,8 +58,9 @@ router.get('/', (req, res) => {
   }
 
   if (fts) {
-    where += ` AND a.id IN (SELECT rowid FROM articles_fts WHERE articles_fts MATCH ?)`;
-    params.push(String(fts));
+    const keyword = `%${String(fts)}%`;
+    where += ` AND (a.title LIKE ? OR a.summary LIKE ? OR a.content_plain LIKE ?)`;
+    params.push(keyword, keyword, keyword);
   }
 
   const orderBy = sort === 'oldest' ? 'a.published_at ASC' : 'a.published_at DESC';
@@ -43,7 +68,10 @@ router.get('/', (req, res) => {
   const joinClause = category_id ? 'JOIN feeds f ON a.feed_id = f.id' : '';
 
   const articles = db.prepare(
-    `SELECT a.* FROM articles a ${joinClause} WHERE ${where} ORDER BY ${orderBy} LIMIT ? OFFSET ?`
+    `SELECT a.id, a.feed_id, a.title, a.link, a.link_hash, a.summary, a.content_plain, a.author,
+            a.published_at, a.fetched_at, a.updated_at, a.is_read, a.read_at,
+            a.is_starred, a.starred_at, a.scroll_position
+     FROM articles a ${joinClause} WHERE ${where} ORDER BY ${orderBy} LIMIT ? OFFSET ?`
   ).all(...params, String(limitNum), String(offset));
 
   const total = db.prepare(
@@ -77,13 +105,43 @@ router.post('/:id/enrich', async (req, res, next) => {
     const article = db.prepare('SELECT * FROM articles WHERE id = ?').get(Number(id)) as any;
     if (!article) throw new Error('Article not found');
 
+    let content: string;
+    let content_plain: string;
+
+    if (article.content) {
+      const cleaned = applyContentAdapters(article.content, article.link);
+      // Convert CCTV video codes before checking text length
+      const withVideo = cleaned.replace(
+        /\[!--begin:htmlVideoCode--\]([a-fA-F0-9]+).*?\[!--end:htmlVideoCode--\]/g,
+        (_, vid: string) => `<div data-cctv-video="${vid}"></div>`
+      );
+      const cleanedPlain = convert(withVideo, { wordwrap: false, preserveNewlines: true }).trim();
+      if (cleanedPlain.length > 10) {
+        content = unwrapImageProxyUrls(withVideo, article.link);
+        content_plain = cleanedPlain;
+        db.prepare(
+          `UPDATE articles SET content = ?, content_plain = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`
+        ).run(content, content_plain, Number(id));
+        preCacheImages(content);
+        res.json({ content, enriched: true });
+        return;
+      }
+    }
+
     const { workerDispatcher } = await import('../workers/worker-dispatcher.js');
-    const { content, content_plain } = await workerDispatcher.dispatchEnrich(article.link);
-    const proxiedContent = proxyImageUrls(content, article.link);
+    const enriched = await workerDispatcher.dispatchEnrich(article.link);
+
+    const originalContent = article.content || '';
+    const originalPlain = article.content_plain || '';
+    const enrichedPlain = enriched.content_plain.trim();
+    content = enrichedPlain.length < 100 && originalPlain.trim().length > enrichedPlain.length ? originalContent : enriched.content;
+    content_plain = enrichedPlain.length < 100 && originalPlain.trim().length > enrichedPlain.length ? originalPlain : enriched.content_plain;
+
     db.prepare(
       `UPDATE articles SET content = ?, content_plain = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`
-    ).run(proxiedContent, content_plain, Number(id));
-    res.json({ content: proxiedContent, enriched: true });
+    ).run(content, content_plain, Number(id));
+    preCacheImages(content);
+    res.json({ content, enriched: true });
   } catch (err) {
     next(err);
   }
@@ -180,6 +238,41 @@ router.post('/mark-all-read', (req, res, next) => {
     ).run(...params);
 
     res.json({ marked: result.changes });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Pre-cache all article images for offline viewing
+router.post('/precache-all', async (_req, res, next) => {
+  try {
+    const db = dbManager.getConnection();
+    const articles = db.prepare('SELECT id, content FROM articles WHERE content IS NOT NULL').all() as any[];
+    const urls = new Set<string>();
+    for (const a of articles) {
+      const regex = /\/api\/image\?url=([^&"]+)/g;
+      let m;
+      while ((m = regex.exec(a.content || '')) !== null) {
+        const decoded = decodeURIComponent(m[1]);
+        if (decoded.startsWith('http')) urls.add(decoded);
+      }
+    }
+    if (urls.size === 0) {
+      res.json({ total: 0, cached: 0 });
+      return;
+    }
+
+    res.json({ total: urls.size, cached: 0, status: 'downloading' });
+
+    const { workerDispatcher } = await import('../workers/worker-dispatcher.js');
+    let cached = 0;
+    for (const url of urls) {
+      try {
+        await workerDispatcher.dispatchImageDownload(url);
+        cached++;
+      } catch {}
+    }
+    console.log(`[precache-all] ${cached}/${urls.size} images cached`);
   } catch (err) {
     next(err);
   }

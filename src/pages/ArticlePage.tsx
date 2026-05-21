@@ -1,20 +1,20 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { createRoot } from 'react-dom/client';
 import DOMPurify from 'dompurify';
 import { useArticleStore } from '../store/articleStore';
-import { useSettingsStore } from '../store/settingsStore';
 import { articlesApi } from '../lib/api';
+import CctvVideo from '../components/CctvVideo';
 
 const sanitizeConfig = {
   ADD_TAGS: ['iframe', 'video', 'source', 'embed'],
-  ADD_ATTR: ['allow', 'allowfullscreen', 'frameborder', 'scrolling', 'srcdoc', 'loading'],
+  ADD_ATTR: ['allow', 'allowfullscreen', 'frameborder', 'scrolling', 'srcdoc', 'loading', 'data-cctv-video', 'playsinline', 'controls'],
 };
 
 export default function ArticlePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { selectedArticle, markRead, markStar, markUnstar } = useArticleStore();
-  const { fontSize } = useSettingsStore.getState();
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -28,12 +28,7 @@ export default function ArticlePage() {
     if (article) {
       useArticleStore.getState().selectArticle(article);
       if (!article.is_read) markRead(articleId);
-
-      if (article.content && article.content.length > 200) {
-        setContent(article.content);
-      } else {
-        enrichArticle(articleId);
-      }
+      enrichArticle(articleId);
     }
   }, [id]);
 
@@ -43,11 +38,54 @@ export default function ArticlePage() {
       const result = await articlesApi.enrich(articleId);
       setContent(result.content);
     } catch {
-      setContent('<p>无法加载文章内容。</p>');
+      const article = useArticleStore.getState().selectedArticle;
+      if (article?.content) {
+        setContent(article.content);
+      } else if (article?.summary) {
+        setContent(`<p>${article.summary}</p>`);
+      } else {
+        setContent('<p>无法加载文章内容。</p>');
+      }
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!content || !contentRef.current) return;
+    const markers = contentRef.current.querySelectorAll('[data-cctv-video]');
+    const roots: ReturnType<typeof createRoot>[] = [];
+    markers.forEach((el) => {
+      const vid = el.getAttribute('data-cctv-video') || '';
+      const root = createRoot(el);
+      root.render(<CctvVideo vid={vid} />);
+      roots.push(root);
+    });
+    return () => roots.forEach((r) => r.unmount());
+  }, [content]);
+
+  useEffect(() => {
+    if (!content || !contentRef.current) return;
+    const imgs = contentRef.current.querySelectorAll<HTMLImageElement>('img[src]');
+    imgs.forEach((img) => {
+      img.onerror = function handleImgError() {
+        const cur = this.getAttribute('src');
+        if (!cur) { this.style.display = 'none'; return; }
+        // Already proxied but failed → extract url param → try direct
+        if (cur.startsWith('/api/image')) {
+          const m = cur.match(/url=([^&]+)/);
+          if (m) { this.src = decodeURIComponent(m[1]); return; }
+        }
+        // Direct URL failed → try proxy
+        if (cur.startsWith('http')) {
+          this.src = '/api/image?url=' + encodeURIComponent(cur);
+          return;
+        }
+        // Both failed → hide
+        this.style.display = 'none';
+      };
+    });
+  }, [content]);
 
   const handleOpenOriginal = () => {
     if (selectedArticle?.link) {
@@ -61,8 +99,6 @@ export default function ArticlePage() {
     }
   };
 
-  const fontSizeClass = fontSize === 0 ? 'text-base' : fontSize === 1 ? 'text-base' : fontSize === 2 ? 'text-lg' : 'text-xl';
-
   if (!selectedArticle) {
     return (
       <div className="flex items-center justify-center h-full text-[var(--color-text-secondary)]">
@@ -73,17 +109,11 @@ export default function ArticlePage() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center gap-1 p-3 border-b border-[var(--color-border)] bg-[var(--color-bg-secondary)]">
-        <button onClick={() => navigate('/')} className="px-3 py-1.5 text-sm rounded-md hover:bg-[var(--color-bg-tertiary)] transition-colors">
+      <div className="flex items-center gap-1 py-2.5 px-4 border-b border-[var(--color-divider)] bg-[var(--color-bg-secondary)]">
+        <button onClick={() => navigate('/')} className="px-3 py-1.5 text-sm rounded-md text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-tertiary)] hover:text-[var(--color-text)] transition-colors">
           ← 返回
         </button>
         <div className="flex-1" />
-        <button onClick={() => {}} className="p-1.5 rounded-md hover:bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)] transition-colors" title="减小字体">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" /></svg>
-        </button>
-        <button onClick={() => {}} className="p-1.5 rounded-md hover:bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)] transition-colors" title="增大字体">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-        </button>
         <button
           onClick={() => selectedArticle.is_starred ? markUnstar(selectedArticle.id) : markStar(selectedArticle.id)}
           className={`p-1.5 rounded-md hover:bg-[var(--color-bg-tertiary)] transition-colors ${selectedArticle.is_starred ? 'text-[var(--color-warning)]' : 'text-[var(--color-text-secondary)]'}`}
@@ -100,9 +130,9 @@ export default function ArticlePage() {
         </button>
       </div>
 
-      <div ref={contentRef} onScroll={handleScroll} className={`flex-1 overflow-y-auto px-8 py-6 max-w-3xl mx-auto article-content ${fontSizeClass}`}>
-        <h1 className="text-2xl font-bold mb-3" style={{ fontFamily: 'var(--font-serif)' }}>{selectedArticle.title}</h1>
-        <div className="flex items-center gap-3 text-sm text-[var(--color-text-secondary)] mb-8 pb-4 border-b border-[var(--color-border)]">
+      <div ref={contentRef} onScroll={handleScroll} className="flex-1 overflow-y-auto px-8 py-6 max-w-3xl mx-auto article-content text-base">
+        <h1 className="text-[var(--font-size-3xl)] font-black mb-3 tracking-tight" style={{ fontFamily: 'var(--font-serif)', lineHeight: 1.2 }}>{selectedArticle.title}</h1>
+        <div className="flex items-center gap-3 text-sm text-[var(--color-text-tertiary)] mb-8 pb-5 border-b border-[var(--color-divider)]">
           {selectedArticle.author && <span>{selectedArticle.author}</span>}
           {selectedArticle.published_at && (
             <>
@@ -114,7 +144,7 @@ export default function ArticlePage() {
         {loading ? (
           <div className="space-y-4">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-4 bg-[var(--color-border)] rounded animate-pulse" />
+              <div key={i} className="skeleton h-4 w-full" style={{ animationDelay: `${i * 0.1}s` }} />
             ))}
           </div>
         ) : content ? (

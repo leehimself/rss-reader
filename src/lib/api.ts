@@ -51,6 +51,7 @@ export const articlesApi = {
   markStar: (id: number) => api<{ success: boolean }>(`/api/articles/${id}/star`, { method: 'POST' }),
   markUnstar: (id: number) => api<{ success: boolean }>(`/api/articles/${id}/unstar`, { method: 'POST' }),
   saveScroll: (id: number, position: number) => api<{ success: boolean }>(`/api/articles/${id}/scroll`, { method: 'POST', body: JSON.stringify({ position }) }),
+  precacheAll: () => api<{ total: number; cached: number; status?: string }>('/api/articles/precache-all', { method: 'POST' }),
   markReadBatch: (articleIds: number[]) => api<{ marked: number }>('/api/articles/mark-read', { method: 'POST', body: JSON.stringify({ article_ids: articleIds }) }),
   markAllRead: (feedId?: number, categoryId?: number) => {
     const body: any = {};

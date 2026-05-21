@@ -10,8 +10,8 @@ import LoadingSkeleton from '../components/LoadingSkeleton';
 
 export default function FeedPage() {
   const { feeds, selectedFeedId, loading: feedsLoading } = useFeedStore();
-  const { total, page, limit, loading: articlesLoading, fetchArticles } = useArticleStore();
-  const { filterUnread, filterStarred, sortBy, searchQuery } = useUIStore();
+  const { articles, total, page, limit, loading: articlesLoading, fetchArticles } = useArticleStore();
+  const { filterStarred, sortBy, searchQuery } = useUIStore();
 
   useFilterSync();
 
@@ -20,12 +20,11 @@ export default function FeedPage() {
       feed_id: selectedFeedId,
       fts: searchQuery || undefined,
       sort: sortBy,
-      unread_only: filterUnread,
       starred_only: filterStarred,
       page,
       limit,
     });
-  }, [selectedFeedId, filterUnread, filterStarred, sortBy, searchQuery, page, limit]);
+  }, [selectedFeedId, filterStarred, sortBy, searchQuery, page, limit]);
 
   if (feedsLoading) return <LoadingSkeleton />;
   if (feeds.length === 0 && !selectedFeedId) {
@@ -40,31 +39,25 @@ export default function FeedPage() {
   return (
     <div className="flex flex-col h-full">
       <FilterBar />
-      {articlesLoading ? (
-        <div className="flex-1 p-4 space-y-4">
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-16 bg-[var(--color-border)] rounded animate-pulse" />
-          ))}
-        </div>
-      ) : (
-        <>
-          <div className="flex-1 overflow-y-auto">
-            <ArticleList />
+      <div className="flex-1 overflow-y-auto">
+        <ArticleList />
+        {articlesLoading && articles.length > 0 && (
+          <div className="flex justify-center py-2">
+            <div className="w-4 h-4 border-2 border-[var(--color-accent)]/20 border-t-[var(--color-accent)] rounded-full animate-spin" />
           </div>
-          <Pagination page={page} total={total} limit={limit} onPageChange={(p) => {
-            useUIStore.getState().setSelectedArticleIndex(0);
-            useArticleStore.getState().fetchArticles({
-              feed_id: selectedFeedId,
-              fts: searchQuery || undefined,
-              sort: sortBy,
-              unread_only: filterUnread,
-              starred_only: filterStarred,
-              page: p,
-              limit,
-            });
-          }} />
-        </>
-      )}
+        )}
+      </div>
+      <Pagination page={page} total={total} limit={limit} onPageChange={(p) => {
+        useUIStore.getState().setSelectedArticleIndex(0);
+        useArticleStore.getState().fetchArticles({
+          feed_id: selectedFeedId,
+          fts: searchQuery || undefined,
+          sort: sortBy,
+          starred_only: filterStarred,
+          page: p,
+          limit,
+        });
+      }} />
     </div>
   );
 }

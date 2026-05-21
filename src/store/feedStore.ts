@@ -35,8 +35,10 @@ export const useFeedStore = create<FeedStore>((set, get) => ({
   selectFeed: (id) => set({ selectedFeedId: id }),
 
   addFeed: async (data) => {
-    await feedsApi.create(data);
+    const result = await feedsApi.create(data);
     await get().fetchFeeds();
+    // Auto-select the new feed and fetch its articles
+    get().selectFeed(result.id || (result as any).id);
   },
 
   updateFeed: async (id, data) => {

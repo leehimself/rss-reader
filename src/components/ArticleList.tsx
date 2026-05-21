@@ -26,7 +26,6 @@ export default function ArticleList() {
           key={article.id}
           article={article}
           isSelected={selectedArticle?.id === article.id}
-          isRead={article.is_read === 1}
           onClick={() => {
             selectArticle(article);
             setSelectedArticleIndex(index);
@@ -39,13 +38,19 @@ export default function ArticleList() {
   );
 }
 
-function ArticleCard({ article, isSelected, isRead, onClick }: {
+function ArticleCard({ article, isSelected, onClick }: {
   article: Article;
   isSelected: boolean;
-  isRead: boolean;
   onClick: () => void;
 }) {
   const timeAgo = getTimeAgo(article.published_at);
+
+  const handleOpenOriginal = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (article.link) {
+      window.electronAPI.openExternal(article.link);
+    }
+  };
 
   return (
     <div
@@ -55,18 +60,28 @@ function ArticleCard({ article, isSelected, isRead, onClick }: {
       )}
       onClick={onClick}
     >
-      {!isRead && <div className="w-2 h-2 mt-2 rounded-full bg-[var(--color-accent)] flex-shrink-0" />}
-      <div className="flex-1 min-w-0">
-        <h3 className="font-bold mb-1" style={{ fontFamily: 'var(--font-serif)' }}>
-          {article.title}
-        </h3>
-        <p className="text-sm text-[var(--color-text-secondary)] line-clamp-2 leading-relaxed">
-          {article.content_plain || article.summary}
-        </p>
-        <div className="flex items-center gap-2 mt-2 text-xs text-[var(--color-text-secondary)]">
-          <span>{article.author || '未知作者'}</span>
-          <span>·</span>
-          <span>{timeAgo}</span>
+      <div className="flex items-start gap-2">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="font-bold" style={{ fontFamily: 'var(--font-serif)' }}>
+              {article.title}
+            </h3>
+            <button
+              onClick={handleOpenOriginal}
+              className="p-1 rounded-md hover:bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)] transition-colors flex-shrink-0"
+              title="在浏览器中打开"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+            </button>
+          </div>
+          <p className="text-sm text-[var(--color-text-secondary)] line-clamp-2 leading-relaxed">
+            {article.content_plain || article.summary}
+          </p>
+          <div className="flex items-center gap-2 mt-2 text-xs text-[var(--color-text-secondary)]">
+            <span>{article.author || '未知作者'}</span>
+            <span>·</span>
+            <span>{timeAgo}</span>
+          </div>
         </div>
       </div>
     </div>

@@ -29,7 +29,7 @@ export default function CategoryList({ feeds, selectedFeedId, onSelectFeed }: Ca
       <div
         className={clsx(
           'flex items-center px-4 py-2 cursor-pointer hover:bg-[var(--color-bg-tertiary)] transition-colors',
-          selectedFeedId === null && 'bg-[var(--color-accent)] text-white'
+          selectedFeedId === null && 'bg-[var(--color-accent-light)]'
         )}
         onClick={() => onSelectFeed(null)}
       >
@@ -93,7 +93,7 @@ function FeedItem({ feed, isSelected, onSelect, onFetch }: {
     <div
       className={clsx(
         'group flex items-center pl-10 pr-2 py-1.5 cursor-pointer hover:bg-[var(--color-bg-tertiary)] transition-colors',
-        isSelected && 'bg-[var(--color-accent)] text-white'
+        isSelected && 'bg-[var(--color-accent-light)]'
       )}
       onClick={onSelect}
     >
@@ -103,11 +103,6 @@ function FeedItem({ feed, isSelected, onSelect, onFetch }: {
         <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 5c7.18 0 13 5.82 13 13M6 11a7 7 0 017 7m-6 0a1 1 0 11-2 0 1 1 0 012 0z" /></svg>
       )}
       <span className="flex-1 text-sm truncate">{feed.name}</span>
-      {feed.unread_count && feed.unread_count > 0 && (
-        <span className={clsx('text-xs px-1.5 py-0.5 rounded-md', isSelected ? 'bg-white/20' : 'bg-[var(--color-badge)] text-white')}>
-          {feed.unread_count}
-        </span>
-      )}
       {feed.status !== 'healthy' && (
         <svg className="w-3 h-3 ml-1 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
       )}

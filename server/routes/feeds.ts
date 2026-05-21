@@ -42,7 +42,13 @@ router.post('/', async (req, res, next) => {
     const existing = db.prepare('SELECT id FROM feeds WHERE url_hash = ?').get(url_hash) as { id: number } | undefined;
     if (existing) throw new Error('Feed already exists');
 
-    const feed = await fetchAndParseFeed(url);
+    let feed: Awaited<ReturnType<typeof fetchAndParseFeed>>;
+    try {
+      feed = await fetchAndParseFeed(url);
+    } catch (fetchErr) {
+      const msg = (fetchErr as Error).message;
+      throw new Error(msg.includes('HTTP') ? `RSS 源不可用: ${msg}` : `无法获取 RSS: ${msg}`);
+    }
 
     const result = db.prepare(
       `INSERT INTO feeds (name, url, url_hash, category_id, custom_interval, description)
@@ -56,8 +62,35 @@ router.post('/', async (req, res, next) => {
       feed.description || null
     );
 
-    const newFeed = db.prepare('SELECT * FROM feeds WHERE id = ?').get(result.lastInsertRowid) as any;
-    res.status(201).json(newFeed);
+    const newFeedId = result.lastInsertRowid as number;
+
+    // Insert articles from the fetched feed
+    const articles = feed.articles || [];
+    const insertArticle = db.prepare(
+      `INSERT OR IGNORE INTO articles (feed_id, title, link, link_hash, summary, content, content_plain, author, published_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    );
+    let articleCount = 0;
+    const insertAll = db.transaction((rows: any[]) => {
+      for (const a of rows) {
+        insertArticle.run(
+          newFeedId,
+          a.title?.slice(0, 512) || '',
+          a.link || '',
+          a.link_hash || '',
+          a.summary?.slice(0, 65535) || null,
+          a.content?.slice(0, 16777215) || null,
+          a.content_plain || null,
+          a.author || null,
+          a.published_at || null
+        );
+        articleCount++;
+      }
+    });
+    insertAll(articles);
+
+    const newFeed = db.prepare('SELECT * FROM feeds WHERE id = ?').get(newFeedId) as any;
+    res.status(201).json({ ...newFeed, articles_added: articleCount });
   } catch (err) {
     next(err);
   }

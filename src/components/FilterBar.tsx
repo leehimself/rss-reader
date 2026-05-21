@@ -2,25 +2,24 @@ import { useState } from 'react';
 import { useUIStore } from '../store/uiStore';
 import { useArticleStore } from '../store/articleStore';
 import { useFeedStore } from '../store/feedStore';
+import { articlesApi } from '../lib/api';
 import clsx from 'clsx';
 
 export default function FilterBar() {
-  const { filterUnread, filterStarred, sortBy, setFilterUnread, setFilterStarred, setSortBy } = useUIStore();
-  const { selectedIds, markReadBatch, clearSelection } = useArticleStore();
-  const { selectedFeedId, refreshAll } = useFeedStore();
+  const { filterStarred, sortBy, setFilterStarred, setSortBy } = useUIStore();
+  const { refreshAll } = useFeedStore();
   const [refreshing, setRefreshing] = useState(false);
-
-  const handleMarkAllRead = async () => {
-    const { markAllRead } = useArticleStore.getState();
-    await markAllRead(selectedFeedId || undefined);
-  };
+  const [caching, setCaching] = useState(false);
 
   const handleRefreshAll = async () => {
     if (refreshing) return;
     setRefreshing(true);
     try {
-      const result = await refreshAll();
-      console.log(`刷新完成: ${result.success} 成功, ${result.failed} 失败, ${result.new_articles} 篇新文章`);
+      await refreshAll();
+      const { fetchArticles } = useArticleStore.getState();
+      const { selectedFeedId } = useFeedStore.getState();
+      const { filterStarred, sortBy, searchQuery } = useUIStore.getState();
+      fetchArticles({ feed_id: selectedFeedId, fts: searchQuery || undefined, sort: sortBy, starred_only: filterStarred, page: 1, limit: 20 });
     } catch (err) {
       console.error('刷新失败:', err);
     } finally {
@@ -28,14 +27,21 @@ export default function FilterBar() {
     }
   };
 
+  const handlePrecache = async () => {
+    if (caching) return;
+    setCaching(true);
+    try {
+      const result = await articlesApi.precacheAll();
+      console.log(`缓存任务: ${result.total} 张图片`);
+    } catch (err) {
+      console.error('缓存失败:', err);
+    } finally {
+      setCaching(false);
+    }
+  };
+
   return (
     <div className="flex items-center gap-2 p-2 border-b border-[var(--color-border)] bg-[var(--color-bg-secondary)]">
-      <button
-        className={clsx('px-3 py-1.5 text-sm rounded-md transition-colors', filterUnread ? 'bg-[var(--color-accent)] text-white' : 'hover:bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)]')}
-        onClick={() => setFilterUnread(!filterUnread)}
-      >
-        未读
-      </button>
       <button
         className={clsx('px-3 py-1.5 text-sm rounded-md transition-colors', filterStarred ? 'bg-[var(--color-accent)] text-white' : 'hover:bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)]')}
         onClick={() => setFilterStarred(!filterStarred)}
@@ -53,28 +59,20 @@ export default function FilterBar() {
 
       <div className="flex-1" />
 
-      {selectedIds.size > 0 && (
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-[var(--color-text-secondary)]">已选 {selectedIds.size} 篇</span>
-          <button onClick={() => markReadBatch(Array.from(selectedIds))} className="px-3 py-1.5 text-sm rounded bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent-hover)]">
-            标记已读
-          </button>
-          <button onClick={clearSelection} className="px-3 py-1.5 text-sm rounded hover:bg-[var(--color-border)]">
-            清除
-          </button>
-        </div>
-      )}
-
+      <button 
+        onClick={handlePrecache}
+        disabled={caching}
+        className="px-3 py-1.5 text-sm rounded-md hover:bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)] transition-colors disabled:opacity-50"
+        title="缓存全部图片供离线查看"
+      >
+        {caching ? '缓存中...' : '预缓存'}
+      </button>
       <button 
         onClick={handleRefreshAll} 
         disabled={refreshing}
         className="px-3 py-1.5 text-sm rounded-md hover:bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)] transition-colors disabled:opacity-50"
       >
         {refreshing ? '刷新中...' : '全部刷新'}
-      </button>
-
-      <button onClick={handleMarkAllRead} className="px-3 py-1.5 text-sm rounded-md hover:bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)] transition-colors">
-        全部标记已读
       </button>
     </div>
   );

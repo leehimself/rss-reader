@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useFeedStore } from '../store/feedStore';
+import { useArticleStore } from '../store/articleStore';
+import { useUIStore } from '../store/uiStore';
 import type { Feed } from '@shared/types';
 import FeedManageDialog from './FeedManageDialog';
 
@@ -29,6 +31,9 @@ export default function FeedActionMenu({ feed, onRefresh }: FeedActionMenuProps)
     try {
       await fetchFeed(feed.id);
       onRefresh();
+      const { fetchArticles } = useArticleStore.getState();
+      const { filterStarred, sortBy, searchQuery } = useUIStore.getState();
+      fetchArticles({ feed_id: feed.id, fts: searchQuery || undefined, sort: sortBy, starred_only: filterStarred, page: 1, limit: 20 });
     } catch (err) {
       console.error(`刷新「${feed.name}」失败:`, err);
     }

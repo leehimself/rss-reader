@@ -1,5 +1,6 @@
 import { useFeedStore } from '../store/feedStore';
 import { useUIStore } from '../store/uiStore';
+import { useNavigate } from 'react-router-dom';
 import CategoryList from './CategoryList';
 import FeedManageDialog from './FeedManageDialog';
 import SettingsDialog from './SettingsDialog';
@@ -10,6 +11,12 @@ import clsx from 'clsx';
 export default function Sidebar() {
   const { feeds, selectedFeedId, selectFeed } = useFeedStore();
   const { sidebarCollapsed, setSidebarCollapsed, setActiveDialog } = useUIStore();
+  const navigate = useNavigate();
+
+  const handleSelectFeed = (id: number | null) => {
+    selectFeed(id);
+    navigate('/');
+  };
 
   return (
     <>
@@ -40,7 +47,7 @@ export default function Sidebar() {
             </div>
 
             <div className="flex-1 overflow-y-auto">
-              <CategoryList feeds={feeds} selectedFeedId={selectedFeedId} onSelectFeed={selectFeed} />
+              <CategoryList feeds={feeds} selectedFeedId={selectedFeedId} onSelectFeed={handleSelectFeed} />
             </div>
 
             <div className="flex gap-2 p-2 border-t border-[var(--color-border)]">
