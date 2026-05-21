@@ -4,6 +4,7 @@ import { convert } from 'html-to-text';
 import { getProxyAgent } from '../proxy.js';
 import { fetch as undiciFetch } from 'undici';
 import { applyContentAdapters } from './content-adapters.js';
+import { convertVideoLinksToEmbeds } from './video-embed.js';
 
 export async function enrichArticle(url: string): Promise<{ content: string; content_plain: string }> {
   const controller = new AbortController();
@@ -31,6 +32,8 @@ export async function enrichArticle(url: string): Promise<{ content: string; con
     let content = article.content || '';
     // Apply content adapters for lazy-load images and site-specific fixes
     content = applyContentAdapters(content, url);
+    // Convert video links to embeds
+    content = convertVideoLinksToEmbeds(content);
 
     const content_plain = convert(content, { wordwrap: false, preserveNewlines: true }).trim();
 
