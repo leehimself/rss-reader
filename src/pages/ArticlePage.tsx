@@ -9,7 +9,6 @@ import { articlesApi } from '../lib/api';
 const sanitizeConfig = {
   ADD_TAGS: ['iframe', 'video', 'source', 'embed'],
   ADD_ATTR: ['allow', 'allowfullscreen', 'frameborder', 'scrolling', 'srcdoc', 'loading'],
-  ADD_DATA_URI_TAGS: ['iframe'],
 };
 
 export default function ArticlePage() {
