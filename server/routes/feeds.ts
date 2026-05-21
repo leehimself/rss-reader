@@ -133,10 +133,16 @@ router.post('/refresh-all', async (req, res, next) => {
     const limit = pLimit(5);
     const results = await Promise.allSettled(
       feeds.map(feed => limit(async () => {
-        const { workerDispatcher } = await import('../workers/worker-dispatcher.js');
-        const newArticles = await workerDispatcher.dispatchRssFetch(feed.id, feed.url, db);
-        db.prepare(`UPDATE feeds SET status = 'healthy', error_count = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(feed.id);
-        return { id: feed.id, name: feed.name, newArticles };
+        try {
+          const { workerDispatcher } = await import('../workers/worker-dispatcher.js');
+          const newArticles = await workerDispatcher.dispatchRssFetch(feed.id, feed.url, db);
+          db.prepare(`UPDATE feeds SET status = 'healthy', error_count = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(feed.id);
+          return { id: feed.id, name: feed.name, newArticles };
+        } catch (err) {
+          const errorMessage = (err as Error).message;
+          db.prepare(`UPDATE feeds SET status = CASE WHEN error_count >= 10 THEN 'error' WHEN error_count >= 3 THEN 'degraded' ELSE status END, last_error = ?, error_count = error_count + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(errorMessage, feed.id);
+          throw err;
+        }
       }))
     );
 
@@ -147,6 +153,8 @@ router.post('/refresh-all', async (req, res, next) => {
         newArticles += r.value.newArticles;
       } else {
         failed++;
+        const feedName = feeds[results.indexOf(r)]?.name || 'unknown';
+        console.error(`[refresh-all] Failed to fetch "${feedName}":`, r.reason);
       }
     }
 
