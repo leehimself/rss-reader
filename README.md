@@ -1,98 +1,118 @@
 # RSS Reader
 
-妗岄潰 RSS 鑱氬悎闃呰鍣紝鍩轰簬 Electron + React + Express + SQLite 鏋勫缓銆?
-## 鍔熻兘鐗规€?
-- **璁㈤槄绠＄悊** 鈥?鏀寔 RSS 2.0 / Atom / JSON Feed锛屾敮鎸?RSSHub 闀滃儚棰勮锛岃嚜鍔ㄥ彂鐜扮綉椤?Feed 閾炬帴
-- **鏂囩珷闃呰** 鈥?宸︿晶鍒嗙被/Feed 鏍?+ 鏂囩珷鍒楄〃 + 鍙充晶鏂囩珷璇︽儏鐨勪笁鏍忓竷灞€锛涢€氳繃 @mozilla/readability 鎻愬彇鍏ㄦ枃
-- **鍏ㄦ枃鎼滅储** 鈥?SQLite FTS5 鍏ㄦ枃妫€绱㈠紩鎿庯紝鎼滅储鏍囬/鎽樿/姝ｆ枃
-- **鍒嗙被鏁寸悊** 鈥?鑷畾涔夊垎绫伙紝鎸?Feed 鎴栧垎绫绘煡鐪嬫湭璇绘枃绔?- **闃呰鐘舵€?* 鈥?鏈/宸茶鏍囪锛屾枃绔犳敹钘忥紙鏄熸爣锛夛紝鎵归噺鏍囪宸茶
-- **鑷姩鍒锋柊** 鈥?鍙厤缃埛鏂伴棿闅旂殑鍚庡彴瀹氭椂鍒锋柊锛岄敊璇?Feed 鎸囨暟閫€閬块噸璇?- **鍐呭娓呯悊** 鈥?鑷姩娓呯悊杩囨湡宸茶鏂囩珷锛堝彲閰嶇疆淇濈暀澶╂暟鍜屾瘡 Feed 鏈€澶ф潯鏁帮級
-- **鍥剧墖浠ｇ悊** 鈥?HMAC 璁よ瘉鐨勬湰鍦板浘鐗囩紦瀛樹唬鐞嗭紝寤惰繜鍔犺浇
-- **瑙嗛宓屽叆** 鈥?YouTube / Bilibili / Vimeo 鑷姩杞崲涓哄祵鍏ュ紡鎾斁鍣?- **CCTV 澶瑙嗛** 鈥?閫氳繃 hls.js 鎾斁澶瑙嗛
-- **鍐呭閫傞厤** 鈥?閽堝澶缃戙€佹編婀冩柊闂荤瓑绔欑偣鐨勫畾鍒跺唴瀹规彁鍙?- **OPML 瀵煎叆瀵煎嚭** 鈥?鏍囧噯 OPML 2.0 鏍煎紡锛屽紓姝ュ鍏ュ甫杩涘害璺熻釜
-- **鏁版嵁搴撳浠?* 鈥?鍒涘缓/鎭㈠鏁版嵁搴撳浠?- **妗岄潰闆嗘垚** 鈥?绯荤粺鎵樼洏銆佸崟瀹炰緥閿併€佸紑鏈鸿嚜鍚€乨eep link锛坒eed://锛?- **妗岄潰閫氱煡** 鈥?鏂版枃绔犳闈㈤€氱煡锛堝彲閰嶇疆锛?- **涓婚鍒囨崲** 鈥?娴呰壊/娣辫壊/璺熼殢绯荤粺涓婚
-- **閿洏蹇嵎閿?* 鈥?`j/k` 瀵艰埅锛宍m` 鍒囨崲宸茶锛宍s` 鍒囨崲鏄熸爣锛宍r` 鍒锋柊
-- **绂荤嚎妫€娴?* 鈥?缃戠粶鐘舵€佹彁绀烘í骞?- **浠ｇ悊鏀寔** 鈥?鏀寔 HTTPS_PROXY / HTTP_PROXY 鐜鍙橀噺
-- **缁撴瀯鍖栨棩蹇?* 鈥?Winston 鏃ュ織锛屾瘡鏃ヨ疆杞紝14 澶╀繚鐣?
-## 鎶€鏈爤
+桌面 RSS 聚合阅读器，基于 Electron + React + Express + SQLite 构建。
 
-| 灞?| 鎶€鏈?|
+## 功能特性
+
+- **订阅管理** — 支持 RSS 2.0 / Atom / JSON Feed，支持 RSSHub 镜像预设，自动发现网页 Feed 链接
+- **文章阅读** — 左侧分类/Feed 树 + 文章列表 + 右侧文章详情的三栏布局；通过 @mozilla/readability 提取全文
+- **全文搜索** — SQLite FTS5 全文检索引擎，搜索标题/摘要/正文
+- **分类整理** — 自定义分类，按 Feed 或分类查看未读文章
+- **阅读状态** — 未读/已读标记，文章收藏（星标），批量标记已读
+- **自动刷新** — 可配置刷新间隔的后台定时刷新，错误 Feed 指数退避重试
+- **内容清理** — 自动清理过期已读文章（可配置保留天数和每 Feed 最大条数）
+- **图片代理** — HMAC 认证的本地图片缓存代理，延迟加载
+- **视频嵌入** — YouTube / Bilibili / Vimeo 自动转换为嵌入式播放器
+- **CCTV 央视视频** — 通过 hls.js 播放央视视频
+- **内容适配** — 针对央视网、澎湃新闻等站点的定制内容提取
+- **OPML 导入导出** — 标准 OPML 2.0 格式，异步导入带进度跟踪
+- **数据库备份** — 创建/恢复数据库备份
+- **桌面集成** — 系统托盘、单实例锁、开机自启、deep link（feed://）
+- **桌面通知** — 新文章桌面通知（可配置）
+- **主题切换** — 浅色/深色/跟随系统主题
+- **键盘快捷键** — `j/k` 导航，`m` 切换已读，`s` 切换星标，`r` 刷新
+- **离线检测** — 网络状态提示横幅
+- **代理支持** — 支持 HTTPS_PROXY / HTTP_PROXY 环境变量
+- **结构化日志** — Winston 日志，每日轮转，14 天保留
+
+## 技术栈
+
+| 层 | 技术 |
 |---|---|
-| 鍓嶇 | React 18, TypeScript, React Router 7, Zustand, Tailwind CSS 3, Vite 6 |
-| 妗岄潰 | Electron 34, electron-builder 26 |
-| 鍚庣 | Express 5, TypeScript锛堝唴宓屼簬 Electron 涓昏繘绋嬶級 |
-| 鏁版嵁搴?| SQLite via better-sqlite3锛學AL 妯″紡锛孎TS5 |
-| 娴嬭瘯 | Vitest锛堝崟鍏冿級锛孭laywright锛圗2E锛?|
-| 宸ヤ綔绾跨▼ | worker_threads锛圧SS 鎶撳彇銆佹枃绔犲瘜鍖栥€佸浘鐗囦笅杞斤級 |
+| 前端 | React 18, TypeScript, React Router 7, Zustand, Tailwind CSS 3, Vite 6 |
+| 桌面 | Electron 34, electron-builder 26 |
+| 后端 | Express 5, TypeScript（内嵌于 Electron 主进程） |
+| 数据库 | SQLite via better-sqlite3，WAL 模式，FTS5 |
+| 测试 | Vitest（单元），Playwright（E2E） |
+| 工作线程 | worker_threads（RSS 抓取、文章富化、图片下载） |
 
-## 蹇€熷紑濮?
+## 快速开始
+
 ```bash
-# 瀹夎渚濊禆
+# 安装依赖
 npm install
 
-# 寮€鍙戞ā寮忥紙鍚姩 Vite + Electron锛?npm run dev
+# 开发模式（启动 Vite + Electron）
+npm run dev
 
-# 杩愯娴嬭瘯
+# 运行测试
 npm test
 
-# E2E 娴嬭瘯
+# E2E 测试
 npm run test:e2e
 ```
 
-## 鏋勫缓
+## 构建
 
 ```bash
 npm run electron:build
 ```
 
-鏋勫缓浜х墿浣嶄簬 `release/` 鐩綍銆?
-## 椤圭洰缁撴瀯
+构建产物位于 `release/` 目录。
+
+## 项目结构
 
 ```
 rss-reader/
-鈹溾攢鈹€ electron/          # Electron 涓昏繘绋?鈹溾攢鈹€ preload/           # Electron preload 鑴氭湰
-鈹溾攢鈹€ server/            # Express 鍚庣锛堣矾鐢便€丷SS 鎶撳彇銆佹暟鎹簱杩佺Щ銆佸伐浣滅嚎绋嬶級
-鈹?  鈹溾攢鈹€ routes/        # API 璺敱锛坒eeds, articles, categories, opml, 绛夛級
-鈹?  鈹溾攢鈹€ rss/           # RSS 鏍稿績閫昏緫锛堟姄鍙栥€佸瘜鍖栥€佽皟搴︺€佹竻鐞嗭級
-鈹?  鈹斺攢鈹€ workers/       # 宸ヤ綔绾跨▼锛圧SS銆佸瘜鍖栥€佸浘鐗囷級
-鈹溾攢鈹€ src/               # React 鍓嶇
-鈹?  鈹溾攢鈹€ pages/         # 椤甸潰缁勪欢
-鈹?  鈹溾攢鈹€ components/    # UI 缁勪欢
-鈹?  鈹溾攢鈹€ hooks/         # React Hooks
-鈹?  鈹溾攢鈹€ store/         # Zustand 鐘舵€佺鐞?鈹?  鈹斺攢鈹€ lib/           # 宸ュ叿搴?鈹溾攢鈹€ shared/            # 鍓嶅悗绔叡浜被鍨嬪拰宸ュ叿
-鈹溾攢鈹€ public/            # 闈欐€佽祫婧?鈹溾攢鈹€ assets/            # 鍥炬爣璧勬簮
-鈹斺攢鈹€ build/             # 鏋勫缓璧勬簮
+├── electron/          # Electron 主进程
+├── preload/           # Electron preload 脚本
+├── server/            # Express 后端（路由、RSS 抓取、数据库迁移、工作线程）
+│   ├── routes/        # API 路由（feeds, articles, categories, opml, 等）
+│   ├── rss/           # RSS 核心逻辑（抓取、富化、调度、清理）
+│   └── workers/       # 工作线程（RSS、富化、图片）
+├── src/               # React 前端
+│   ├── pages/         # 页面组件
+│   ├── components/    # UI 组件
+│   ├── hooks/         # React Hooks
+│   ├── store/         # Zustand 状态管理
+│   └── lib/           # 工具库
+├── shared/            # 前后端共享类型和工具
+├── public/            # 静态资源
+├── assets/            # 图标资源
+└── build/             # 构建资源
 ```
 
-## 閰嶇疆
+## 配置
 
-| 鐜鍙橀噺 | 璇存槑 | 榛樿鍊?|
+| 环境变量 | 说明 | 默认值 |
 |---|---|---|
-| `VITE_DEV_SERVER_PORT` | 寮€鍙戞湇鍔″櫒绔彛 | 5173 |
-| `HTTPS_PROXY` / `HTTP_PROXY` | HTTP 浠ｇ悊鍦板潃 | - |
+| `VITE_DEV_SERVER_PORT` | 开发服务器端口 | 5173 |
+| `HTTPS_PROXY` / `HTTP_PROXY` | HTTP 代理地址 | - |
 
-搴旂敤鍐呰缃紙瀛樺偍浜?`settings` 琛級锛?
-| 璁剧疆椤?| 璇存槑 | 榛樿鍊?|
+应用内设置（存储于 `settings` 表）：
+
+| 设置项 | 说明 | 默认值 |
 |---|---|---|
-| `refresh_interval` | 鍒锋柊闂撮殧锛堝垎閽燂級 | 30 |
-| `theme` | 涓婚 | system |
-| `max_keep_days` | 鏂囩珷淇濈暀澶╂暟 | 90 |
-| `max_articles_per_feed` | 姣?Feed 鏈€澶ф枃绔犳暟 | 500 |
-| `enable_notifications` | 鍚敤閫氱煡 | true |
-| `open_at_login` | 寮€鏈鸿嚜鍚?| false |
-| `minimize_to_tray` | 鏈€灏忓寲鍒版墭鐩?| true |
-| `log_level` | 鏃ュ織绾у埆 | info |
+| `refresh_interval` | 刷新间隔（分钟） | 30 |
+| `theme` | 主题 | system |
+| `max_keep_days` | 文章保留天数 | 90 |
+| `max_articles_per_feed` | 每 Feed 最大文章数 | 500 |
+| `enable_notifications` | 启用通知 | true |
+| `open_at_login` | 开机自启 | false |
+| `minimize_to_tray` | 最小化到托盘 | true |
+| `log_level` | 日志级别 | info |
 
-## 閿紶鎿嶄綔
+## 键鼠操作
 
-| 蹇嵎閿?| 鍔熻兘 |
+| 快捷键 | 功能 |
 |---|---|
-| `j` / `鈫揱 | 涓嬩竴鏉℃枃绔?|
-| `k` / `鈫慲 | 涓婁竴鏉℃枃绔?|
-| `m` | 鍒囨崲宸茶/鏈 |
-| `s` | 鍒囨崲鏄熸爣 |
-| `r` | 鍒锋柊褰撳墠 Feed |
-| 鍙抽敭 | 涓婁笅鏂囪彍鍗曪紙澶嶅埗銆佹墦寮€閾炬帴銆佸叏閫夛級 |
+| `j` / `↓` | 下一条文章 |
+| `k` / `↑` | 上一条文章 |
+| `m` | 切换已读/未读 |
+| `s` | 切换星标 |
+| `r` | 刷新当前 Feed |
+| 右键 | 上下文菜单（复制、打开链接、全选） |
 
-## 璁稿彲璇?
+## 许可证
+
 MIT
