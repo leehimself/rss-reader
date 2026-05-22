@@ -27,8 +27,7 @@ class WorkerDispatcher {
              content = excluded.content,
              content_plain = excluded.content_plain,
              author = excluded.author,
-             updated_at = CURRENT_TIMESTAMP
-           WHERE excluded.content IS NOT NULL AND excluded.content != ''`
+             updated_at = CURRENT_TIMESTAMP`
         );
         let count = 0;
         const runMany = db.transaction((rows: any[]) => {

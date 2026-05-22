@@ -67,8 +67,15 @@ router.post('/', async (req, res, next) => {
     // Insert articles from the fetched feed
     const articles = feed.articles || [];
     const insertArticle = db.prepare(
-      `INSERT OR IGNORE INTO articles (feed_id, title, link, link_hash, summary, content, content_plain, author, published_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO articles (feed_id, title, link, link_hash, summary, content, content_plain, author, published_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(feed_id, link_hash) DO UPDATE SET
+         title = excluded.title,
+         summary = excluded.summary,
+         content = excluded.content,
+         content_plain = excluded.content_plain,
+         author = excluded.author,
+         updated_at = CURRENT_TIMESTAMP`
     );
     let articleCount = 0;
     const insertAll = db.transaction((rows: any[]) => {
