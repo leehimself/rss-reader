@@ -18,6 +18,13 @@ const videoPatterns = [
 
 export function convertVideoLinksToEmbeds(html: string): string {
   let result = html;
+
+  // Normalize Bilibili iframe embeds from blackboard to standard player
+  result = result.replace(
+    /<iframe[^>]*src="https:\/\/www\.bilibili\.com\/blackboard\/html5mobileplayer\.html\?bvid=([a-zA-Z0-9]+)[^"]*"[^>]*><\/iframe>/gi,
+    (_, bvid) => `<iframe src="https://player.bilibili.com/player.html?bvid=${bvid}&page=1" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true" width="560" height="315"></iframe>`
+  );
+
   for (const pattern of videoPatterns) {
     // Find links matching the pattern and replace with embeds
     const linkRegex = /<a[^>]*href=["']([^"']*)["'][^>]*>(.*?)<\/a>/gi;
