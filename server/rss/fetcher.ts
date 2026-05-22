@@ -55,7 +55,7 @@ export async function fetchAndParseFeed(url: string): Promise<ParsedFeed> {
       const isTemplate = /page_body|正在加载|加载更多|责任编辑|查看全部|阅读全文/i.test(content) && stripHtml(content).trim().length < 100;
       // Check if summary/description has actual article content
       const summaryText = summary || description;
-      const summaryHasContent = summaryText.length > 100 && /<(p|div|img|span|h\d|br|li|table)[\s>]/i.test(summaryText);
+      const summaryHasContent = summaryText.length > 60 && /<(p|div|img|span|h\d|br|li|table|iframe|video|a)[\s>]/i.test(summaryText);
 
       if (isTemplate && summaryHasContent) {
         content = summaryText;
