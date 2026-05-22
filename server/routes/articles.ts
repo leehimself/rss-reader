@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { dbManager } from '../db.js';
 import { applyContentAdapters } from '../rss/content-adapters.js';
 import { unwrapImageProxyUrls } from '../rss/image-proxy-integration.js';
+import { convertVideoLinksToEmbeds } from '../rss/video-embed.js';
 import { convert } from 'html-to-text';
 
 const router = Router();
@@ -117,7 +118,8 @@ router.post('/:id/enrich', async (req, res, next) => {
       );
       const cleanedPlain = convert(withVideo, { wordwrap: false, preserveNewlines: true }).trim();
       if (cleanedPlain.length > 10) {
-        content = unwrapImageProxyUrls(withVideo, article.link);
+        content = convertVideoLinksToEmbeds(withVideo);
+        content = unwrapImageProxyUrls(content, article.link);
         content_plain = cleanedPlain;
         db.prepare(
           `UPDATE articles SET content = ?, content_plain = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`
