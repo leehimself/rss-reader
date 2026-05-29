@@ -58,8 +58,8 @@ export default function SettingsDialog({ onClose }: SettingsDialogProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-[var(--color-bg)] rounded-lg p-6 w-full max-w-lg max-h-[80vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
+      <div className="bg-[var(--color-bg)] rounded-lg p-6 w-full max-w-lg max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <h2 className="text-lg font-bold mb-4">设置</h2>
 
         <div className="space-y-4">
@@ -141,6 +141,43 @@ export default function SettingsDialog({ onClose }: SettingsDialogProps) {
               id="minimizeToTray"
             />
             <label htmlFor="minimizeToTray" className="text-sm">最小化到托盘</label>
+          </div>
+
+          <div className="pt-4 border-t border-[var(--color-border)]">
+            <h3 className="text-sm font-medium mb-3">AI 智能功能</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium mb-1">API Key</label>
+                <input
+                  type="password"
+                  value={settings.ai_api_key}
+                  onChange={e => settings.updateSetting('ai_api_key', e.target.value)}
+                  placeholder="sk-..."
+                  className="w-full px-3 py-2 border border-[var(--color-border)] rounded bg-[var(--color-bg)] text-[var(--color-text)]"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">模型</label>
+                <input
+                  type="text"
+                  value={settings.ai_model}
+                  onChange={e => settings.updateSetting('ai_model', e.target.value)}
+                  placeholder="deepseek-v4-flash"
+                  className="w-full px-3 py-2 border border-[var(--color-border)] rounded bg-[var(--color-bg)] text-[var(--color-text)]"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">摘要语言</label>
+                <select
+                  value={settings.ai_summary_language}
+                  onChange={e => settings.updateSetting('ai_summary_language', e.target.value)}
+                  className="w-full px-3 py-2 border border-[var(--color-border)] rounded bg-[var(--color-bg)] text-[var(--color-text)]"
+                >
+                  <option value="zh">中文</option>
+                  <option value="en">English</option>
+                </select>
+              </div>
+            </div>
           </div>
 
           <div className="pt-4 border-t border-[var(--color-border)]">
