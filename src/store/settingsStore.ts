@@ -43,6 +43,9 @@ export const useSettingsStore = create<SettingsStore>()(
       open_at_login: false,
       minimize_to_tray: true,
       log_level: 'info',
+      ai_api_key: '',
+      ai_model: 'deepseek-v4-flash',
+      ai_summary_language: 'zh',
       loading: false,
       fontSize: 1,
 
