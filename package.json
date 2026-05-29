@@ -1,7 +1,7 @@
 {
-  "name": "rss-reader",
+  "name": "ai-rss-reader",
   "version": "1.0.0",
-  "description": "Desktop RSS Reader with Electron, React, and SQLite",
+  "description": "AI-Rss订阅源抓取器 - 桌面 RSS 聚合阅读器，集成 AI 智能摘要与对话问答",
   "main": "dist-electron/main.cjs",
   "scripts": {
     "dev": "vite",
@@ -55,6 +55,7 @@
     "concurrently": "^9.1.2",
     "electron": "^34.3.0",
     "electron-builder": "^26.0.12",
+    "png-to-ico": "^3.0.1",
     "postcss": "^8.5.3",
     "tailwindcss": "^3.4.17",
     "to-ico": "^1.1.5",
