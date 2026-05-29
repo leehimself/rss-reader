@@ -9,6 +9,9 @@ const TYPE_MAP: Record<string, 'number' | 'boolean' | 'string'> = {
   open_at_login: 'boolean',
   minimize_to_tray: 'boolean',
   log_level: 'string',
+  ai_api_key: 'string',
+  ai_model: 'string',
+  ai_summary_language: 'string',
 };
 
 const DEFAULTS: Record<string, string> = {
@@ -20,6 +23,9 @@ const DEFAULTS: Record<string, string> = {
   open_at_login: 'false',
   minimize_to_tray: 'true',
   log_level: 'info',
+  ai_api_key: '',
+  ai_model: 'deepseek-v4-flash',
+  ai_summary_language: 'zh',
 };
 
 function deserialize(key: string, value: string): string | number | boolean {
