@@ -1,6 +1,8 @@
-import { useState, useMemo } from 'react';
-import type { Feed } from '@shared/types';
+import { useState, useMemo, useEffect } from 'react';
+import type { Feed, Category } from '@shared/types';
 import { useFeedStore } from '../store/feedStore';
+import { categoriesApi } from '../lib/api';
+import { useToastStore } from '../store/toastStore';
 import clsx from 'clsx';
 import FeedActionMenu from './FeedActionMenu';
 
@@ -12,17 +14,33 @@ interface CategoryListProps {
 
 export default function CategoryList({ feeds, selectedFeedId, onSelectFeed }: CategoryListProps) {
   const { fetchFeed } = useFeedStore();
-  const categories = useMemo(() => {
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  const loadCategories = () => {
+    categoriesApi.getAll().then(setCategories).catch(() => {});
+  };
+
+  useEffect(() => { loadCategories(); }, [feeds.length]);
+
+  const categoryMap = useMemo(() => {
+    const map = new Map<number, string>();
+    for (const c of categories) map.set(c.id, c.name);
+    return map;
+  }, [categories]);
+
+  const groups = useMemo(() => {
     const catMap = new Map<number, { category: { id: number; name: string; sort_order: number; is_default: number }; feeds: Feed[] }>();
     for (const feed of feeds) {
       const catId = feed.category_id ?? 0;
       if (!catMap.has(catId)) {
-        catMap.set(catId, { category: { id: catId, name: catId === 0 ? '未分类' : `分类 ${catId}`, sort_order: 0, is_default: catId === 0 ? 1 : 0 }, feeds: [] });
+        const name = catId === 0 ? '未分类' : (categoryMap.get(catId) || `分类 ${catId}`);
+        const cat = categories.find(c => c.id === catId);
+        catMap.set(catId, { category: { id: catId, name, sort_order: cat?.sort_order ?? 0, is_default: cat?.is_default ?? (catId === 0 ? 1 : 0) }, feeds: [] });
       }
       catMap.get(catId)!.feeds.push(feed);
     }
     return Array.from(catMap.values()).sort((a, b) => a.category.sort_order - b.category.sort_order);
-  }, [feeds]);
+  }, [feeds, categoryMap, categories]);
 
   return (
     <div className="py-2">
@@ -38,7 +56,7 @@ export default function CategoryList({ feeds, selectedFeedId, onSelectFeed }: Ca
         <span className="text-xs opacity-70">{feeds.length}</span>
       </div>
 
-      {categories.map(({ category, feeds: catFeeds }) => (
+      {groups.map(({ category, feeds: catFeeds }) => (
         <CategoryGroup
           key={category.id}
           category={category}
@@ -46,29 +64,91 @@ export default function CategoryList({ feeds, selectedFeedId, onSelectFeed }: Ca
           selectedFeedId={selectedFeedId}
           onSelectFeed={onSelectFeed}
           onFetchFeed={fetchFeed}
+          onCategoryChanged={loadCategories}
         />
       ))}
     </div>
   );
 }
 
-function CategoryGroup({ category, feeds, selectedFeedId, onSelectFeed, onFetchFeed }: {
+function CategoryGroup({ category, feeds, selectedFeedId, onSelectFeed, onFetchFeed, onCategoryChanged }: {
   category: { id: number; name: string; is_default: number };
   feeds: Feed[];
   selectedFeedId: number | null;
   onSelectFeed: (id: number | null) => void;
   onFetchFeed: (id: number) => Promise<number>;
+  onCategoryChanged: () => void;
 }) {
   const [expanded, setExpanded] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState(category.name);
+  const showToast = useToastStore((s) => s.show);
+
+  const handleRename = async () => {
+    const name = editName.trim();
+    if (!name || name === category.name) { setEditing(false); return; }
+    try {
+      await categoriesApi.update(category.id, { name });
+      onCategoryChanged();
+      showToast(`分类已重命名为「${name}」`, 'success');
+    } catch (err) {
+      showToast(`重命名失败: ${(err as Error).message}`, 'error');
+    }
+    setEditing(false);
+  };
+
+  const handleDelete = async () => {
+    if (category.is_default) return;
+    try {
+      await categoriesApi.delete(category.id);
+      onCategoryChanged();
+      showToast(`分类「${category.name}」已删除`, 'success');
+    } catch (err) {
+      showToast(`删除失败: ${(err as Error).message}`, 'error');
+    }
+  };
 
   return (
     <div>
       <div
-        className="flex items-center px-4 py-2 cursor-pointer hover:bg-[var(--color-bg-tertiary)] text-sm font-medium transition-colors"
+        className="group flex items-center px-4 py-2 cursor-pointer hover:bg-[var(--color-bg-tertiary)] text-sm font-medium transition-colors"
         onClick={() => setExpanded(!expanded)}
       >
-        <svg className={clsx('w-3 h-3 mr-1 transition-transform', expanded && 'rotate-90')} fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" /></svg>
-        <span className="flex-1">{category.name}</span>
+        <svg className={clsx('w-3 h-3 mr-1 transition-transform flex-shrink-0', expanded && 'rotate-90')} fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" /></svg>
+        {editing ? (
+          <input
+            type="text"
+            value={editName}
+            onChange={e => setEditName(e.target.value)}
+            onBlur={handleRename}
+            onKeyDown={e => { if (e.key === 'Enter') handleRename(); if (e.key === 'Escape') { setEditing(false); setEditName(category.name); } }}
+            onClick={e => e.stopPropagation()}
+            className="flex-1 min-w-0 px-1 py-0.5 text-sm bg-[var(--color-bg)] border border-[var(--color-accent)] rounded outline-none"
+            autoFocus
+          />
+        ) : (
+          <span className="flex-1 truncate">{category.name}</span>
+        )}
+        {category.id !== 0 && !editing && (
+          <div className="hidden group-hover:flex items-center gap-0.5 ml-1" onClick={e => e.stopPropagation()}>
+            <button
+              onClick={() => { setEditing(true); setEditName(category.name); }}
+              className="p-0.5 rounded hover:bg-[var(--color-border)] text-[var(--color-text-tertiary)] hover:text-[var(--color-text)]"
+              title="重命名"
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+            </button>
+            {!category.is_default && (
+              <button
+                onClick={handleDelete}
+                className="p-0.5 rounded hover:bg-red-100 text-[var(--color-text-tertiary)] hover:text-red-500"
+                title="删除分类"
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+              </button>
+            )}
+          </div>
+        )}
       </div>
       {expanded && feeds.map(feed => (
         <FeedItem
