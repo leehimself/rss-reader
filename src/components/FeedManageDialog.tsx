@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useFeedStore } from '../store/feedStore';
 import { categoriesApi } from '../lib/api';
+import { useToastStore } from '../store/toastStore';
 import type { Category } from '@shared/types';
 
 const RSSHUB_MIRRORS = [
@@ -17,6 +18,7 @@ interface FeedManageDialogProps {
 
 export default function FeedManageDialog({ onClose, editFeed }: FeedManageDialogProps) {
   const { addFeed, updateFeed } = useFeedStore();
+  const showToast = useToastStore((s) => s.show);
   const [mirror, setMirror] = useState(RSSHUB_MIRRORS[0].value);
   const [route, setRoute] = useState('');
   const [customUrl, setCustomUrl] = useState(editFeed?.url || '');
@@ -26,6 +28,8 @@ export default function FeedManageDialog({ onClose, editFeed }: FeedManageDialog
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoryId, setCategoryId] = useState<number | null>(editFeed?.category_id ?? null);
   const [customInterval, setCustomInterval] = useState<number | null>(editFeed?.custom_interval ?? null);
+  const [showNewCat, setShowNewCat] = useState(false);
+  const [newCatName, setNewCatName] = useState('');
 
   const isCustom = mirror === '';
   const editing = !!editFeed;
@@ -37,6 +41,21 @@ export default function FeedManageDialog({ onClose, editFeed }: FeedManageDialog
   }, []);
 
   const getFinalUrl = () => (isCustom ? customUrl : mirror + '/' + route.replace(/^\/+/, ''));
+
+  const handleCreateCategory = async () => {
+    const catName = newCatName.trim();
+    if (!catName) return;
+    try {
+      const cat = await categoriesApi.create({ name: catName });
+      setCategories(prev => [...prev, cat]);
+      setCategoryId(cat.id);
+      setShowNewCat(false);
+      setNewCatName('');
+      showToast(`分类「${catName}」已创建`, 'success');
+    } catch (err) {
+      showToast(`创建失败: ${(err as Error).message}`, 'error');
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,7 +91,7 @@ export default function FeedManageDialog({ onClose, editFeed }: FeedManageDialog
             <>
               <div className="mb-4">
                 <label className="block text-sm font-medium mb-1">RSSHub 镜像源</label>
-                <div className="flex gap-2">
+                <div className="flex gap-2 w-full">
                   <select
                     value={mirror}
                     onChange={e => setMirror(e.target.value)}
@@ -87,7 +106,7 @@ export default function FeedManageDialog({ onClose, editFeed }: FeedManageDialog
                       type="url"
                       value={customUrl}
                       onChange={e => setCustomUrl(e.target.value)}
-                      className="flex-1 px-3 py-2 border border-[var(--color-border)] rounded bg-[var(--color-bg)] text-[var(--color-text)] text-sm"
+                      className="flex-1 min-w-0 px-3 py-2 border border-[var(--color-border)] rounded bg-[var(--color-bg)] text-[var(--color-text)] text-sm"
                       placeholder="https://rss.example.com/feed.xml"
                       required
                     />
@@ -96,7 +115,7 @@ export default function FeedManageDialog({ onClose, editFeed }: FeedManageDialog
                       type="text"
                       value={route}
                       onChange={e => setRoute(e.target.value)}
-                      className="flex-1 px-3 py-2 border border-[var(--color-border)] rounded bg-[var(--color-bg)] text-[var(--color-text)] text-sm"
+                      className="flex-1 min-w-0 px-3 py-2 border border-[var(--color-border)] rounded bg-[var(--color-bg)] text-[var(--color-text)] text-sm"
                       placeholder="/cctv/news"
                       required
                     />
@@ -122,14 +141,33 @@ export default function FeedManageDialog({ onClose, editFeed }: FeedManageDialog
           </div>
           <div className="mb-4">
             <label className="block text-sm font-medium mb-1">分类</label>
-            <select
-              value={categoryId ?? 0}
-              onChange={e => setCategoryId(e.target.value ? Number(e.target.value) : null)}
-              className="w-full px-3 py-2 border border-[var(--color-border)] rounded bg-[var(--color-bg)] text-[var(--color-text)] text-sm"
-            >
-              <option value={0}>未分类</option>
-              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
+            {showNewCat ? (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newCatName}
+                  onChange={e => setNewCatName(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') handleCreateCategory(); if (e.key === 'Escape') { setShowNewCat(false); setNewCatName(''); } }}
+                  placeholder="输入分类名称"
+                  className="flex-1 min-w-0 px-3 py-2 border border-[var(--color-border)] rounded bg-[var(--color-bg)] text-[var(--color-text)] text-sm"
+                  autoFocus
+                />
+                <button type="button" onClick={handleCreateCategory} className="px-3 py-2 text-sm rounded bg-[var(--color-accent)] text-white hover:opacity-90">创建</button>
+                <button type="button" onClick={() => { setShowNewCat(false); setNewCatName(''); }} className="px-3 py-2 text-sm rounded hover:bg-[var(--color-bg-tertiary)]">取消</button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <select
+                  value={categoryId ?? 0}
+                  onChange={e => setCategoryId(e.target.value ? Number(e.target.value) : null)}
+                  className="flex-1 min-w-0 px-3 py-2 border border-[var(--color-border)] rounded bg-[var(--color-bg)] text-[var(--color-text)] text-sm"
+                >
+                  <option value={0}>未分类</option>
+                  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+                <button type="button" onClick={() => setShowNewCat(true)} className="px-3 py-2 text-sm rounded border border-[var(--color-border)] hover:bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)]" title="新建分类">+ 新建</button>
+              </div>
+            )}
           </div>
           <div className="mb-4">
             <label className="block text-sm font-medium mb-1">刷新间隔（分钟，留空使用全局设置）</label>
