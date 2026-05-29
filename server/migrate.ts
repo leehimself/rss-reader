@@ -131,6 +131,24 @@ ALTER TABLE articles ADD COLUMN starred_at DATETIME;
 `,
     ignoreError: 'duplicate column name',
   },
+  {
+    version: 5,
+    name: '005_add_ai_summaries.sql',
+    sql: `
+CREATE TABLE IF NOT EXISTS article_summaries (
+  article_id  INTEGER PRIMARY KEY REFERENCES articles(id) ON DELETE CASCADE,
+  summary     TEXT NOT NULL,
+  model       TEXT NOT NULL,
+  created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+`,
+  },
+  {
+    version: 6,
+    name: '006_category_name_zh.sql',
+    sql: `UPDATE categories SET name = '未分类' WHERE id = 0 AND name = 'Uncategorized';`,
+    ignoreError: 'no such table',
+  },
 ];
 
 export async function runMigrations(): Promise<void> {
